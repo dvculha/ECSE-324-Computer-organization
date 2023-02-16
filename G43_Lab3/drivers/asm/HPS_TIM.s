@@ -1,0 +1,97 @@
+.text
+.global HPS_TIM_clear_INT_ASM
+.global HPS_TIM_config_ASM
+.global HPS_TIM_read_INT_ASM
+
+HPS_TIM_config_ASM:
+	PUSH	{R1-R6}
+	LDR R1, =TIM_BASES
+	MOV R6, #4
+	LDR R5, [R0]
+	B	CONFIG_LOOP
+
+CONFIG_SET:
+	lDR	R3, [R1]
+	LDR R4, [R3, #8]
+	AND R4, R4, #0x100
+	ADD R4, R4, #2		//enabling M
+	STR	R4, [R3, #8]
+	LDR R4, [R0, #4]
+	STR	R4, [R3]
+	LDR R4, [R3, #8]
+	ORR R4, R4, #0x11
+	STR	R4, [R3, #8]
+
+CONFIG_INC:
+	LSR R5, #1
+	ADD	R1, R1, #4
+	SUBS	R6, R6, #1
+	CMP	R6, #0
+	BEQ	CONFIG_DONE
+
+CONFIG_LOOP:
+	AND	R2, R5, #1
+	CMP	R2, #0
+	BEQ	CONFIG_INC
+	B	CONFIG_SET
+
+CONFIG_DONE:
+	POP	{R1-R6}
+	BX	LR
+	
+/*****************************************/
+
+HPS_TIM_read_INT_ASM:
+	PUSH	{R1-R2}
+	LDR R1, =TIM_BASES
+	B	READ_LOOP
+
+READ_INC:
+	ADD	R1, R1, #4
+
+READ_LOOP:
+	LSR R0, #1
+	CMP	R0, #0
+	BEQ	READ_DONE
+	B	READ_INC
+
+READ_DONE:
+	LDR R2, [R1]
+	LDR	R0, [R2, #0x10]
+	POP	{R1-R2}
+	BX	LR
+
+/**********************************************/
+
+HPS_TIM_clear_INT_ASM:
+	PUSH	{R1-R2}
+	LDR R1, =TIM_BASES
+	B	CLEAR_LOOP
+
+CLEAR_INC:
+	ADD	R1, R1, #4
+
+CLEAR_LOOP:
+	LSR R0, #1
+	CMP	R0, #0
+	BEQ	CLEAR_DONE
+	B	CLEAR_INC
+
+CLEAR_DONE:
+	LDR R2, [R1]
+	LDR	R0, [R2, #8]
+	AND	R0, R0, #0x100
+	ADD R0, R0, #2
+	STR R0, [R2, #0x8]
+	MOV	R0, #0
+	STR	R0, [R2, #0x10]
+	LDR	R0, [R2, #8]
+	ORR	R0, R0, #0x11
+	STR R0, [R2, #0x8]
+	POP	{R1-R2}
+	BX	LR
+	
+	
+	
+TIM_BASES:	.word	0xFFC08000, 0xFFC09000, 0xFFD00000, 0xFFD01000
+.end
